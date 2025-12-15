@@ -129,8 +129,7 @@ public class c1_Introduction extends IntroductionBase {
         Flux<String> serviceResult = fortuneTop5();
 
         serviceResult
-                .doOnNext(companyList::add)
-                .subscribe()
+                .subscribe(companyList::add)
         //todo: add an operator here, don't use any blocking operator!
         ;
 
