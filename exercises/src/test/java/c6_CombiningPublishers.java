@@ -125,8 +125,10 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     @Test
     public void task_executor_again() {
         //todo: feel free to change code as you need
-        Flux<Void> tasks = null;
-        taskExecutor();
+        Flux<Void> tasks = taskExecutor().concatMap((task)->{
+            tasksToExecute();
+            return task;
+        });
 
         //don't change below this line
         StepVerifier.create(tasks)
@@ -143,9 +145,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     @Test
     public void need_for_speed() {
         //todo: feel free to change code as you need
-        Flux<String> stonks = null;
-        getStocksGrpc();
-        getStocksRest();
+        Flux<String> stonks = Flux.firstWithSignal(getStocksGrpc(),getStocksRest());
 
         //don't change below this line
         StepVerifier.create(stonks)
@@ -161,9 +161,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     @Test
     public void plan_b() {
         //todo: feel free to change code as you need
-        Flux<String> stonks = null;
-        getStocksLocalCache();
-        getStocksRest();
+        Flux<String> stonks = Flux.firstWithValue(getStocksLocalCache(), getStocksRest());
 
         //don't change below this line
         StepVerifier.create(stonks)
@@ -180,9 +178,14 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     @Test
     public void mail_box_switcher() {
         //todo: feel free to change code as you need
-        Flux<Message> myMail = null;
-        mailBoxPrimary();
-        mailBoxSecondary();
+        Flux<Message> myMail = mailBoxPrimary().switchOnFirst((signal,flux)->{
+            if(signal.get().metaData.equals("spam")){
+                return mailBoxSecondary();
+            }
+            else{
+                return flux;
+            }
+        });
 
         //don't change below this line
         StepVerifier.create(myMail)
