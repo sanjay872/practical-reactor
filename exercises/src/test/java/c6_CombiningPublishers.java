@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * In this important chapter we are going to cover different ways of combining publishers.
@@ -207,7 +208,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     public void instant_search() {
         //todo: feel free to change code as you need
         autoComplete(null);
-        Flux<String> suggestions = userSearchInput()
+        Flux<String> suggestions = userSearchInput().switchMap(this::autoComplete);
                 //todo: use one operator only
                 ;
 
@@ -227,11 +228,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     public void prettify() {
         //todo: feel free to change code as you need
         //todo: use when,and,then...
-        Mono<Boolean> successful = null;
-
-        openFile();
-        writeToFile("0x3522285912341");
-        closeFile();
+        Mono<Boolean> successful = openFile().then(writeToFile("0x3522285912341")).then(closeFile()).thenReturn(true);
 
         //don't change below this line
         StepVerifier.create(successful)
@@ -249,9 +246,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     @Test
     public void one_to_n() {
         //todo: feel free to change code as you need
-        Flux<String> fileLines = null;
-        openFile();
-        readFile();
+        Flux<String> fileLines = openFile().thenMany(readFile());
 
         StepVerifier.create(fileLines)
                     .expectNext("0x1", "0x2", "0x3")
@@ -265,9 +260,11 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     @Test
     public void acid_durability() {
         //todo: feel free to change code as you need
-        Flux<String> committedTasksIds = null;
-        tasksToExecute();
-        commitTask(null);
+        Flux<String> committedTasksIds = tasksToExecute().map((task)->{
+          String id=task.block();
+            commitTask(id);
+            return id;
+        });
 
         //don't change below this line
         StepVerifier.create(committedTasksIds)
@@ -285,9 +282,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     @Test
     public void major_merger() {
         //todo: feel free to change code as you need
-        Flux<String> microsoftBlizzardCorp =
-                microsoftTitles();
-        blizzardTitles();
+        Flux<String> microsoftBlizzardCorp =Flux.merge(microsoftTitles(), blizzardTitles());
 
         //don't change below this line
         StepVerifier.create(microsoftBlizzardCorp)
@@ -311,9 +306,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     @Test
     public void car_factory() {
         //todo: feel free to change code as you need
-        Flux<Car> producedCars = null;
-        carChassisProducer();
-        carEngineProducer();
+        Flux<Car> producedCars = Flux.zip(carChassisProducer(),carEngineProducer()).map((data)->new Car(data.getT1(), data.getT2()));
 
         //don't change below this line
         StepVerifier.create(producedCars)
@@ -334,9 +327,16 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
 
     //todo: implement this method based on instructions
     public Mono<String> chooseSource() {
-        sourceA(); //<- choose if sourceRef == "A"
-        sourceB(); //<- choose if sourceRef == "B"
-        return Mono.empty(); //otherwise, return empty
+
+       return Mono.defer(()->{
+           if(sourceRef.get().equals("A")){
+               return sourceA();
+           }
+           else if(sourceRef.get().equals("B")){
+               return sourceB();
+           }
+           return Mono.empty(); //otherwise, return empty
+       });
     }
 
     @Test
@@ -367,9 +367,11 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
         BlockHound.install(); //don't change this line, blocking = cheating!
 
         //todo: feel free to change code as you need
-        Flux<String> stream = StreamingConnection.startStreaming()
-                                                 .flatMapMany(Function.identity());
-        StreamingConnection.closeConnection();
+        Flux<String> stream = Flux.usingWhen(
+                StreamingConnection.startStreaming(),
+                        Function.identity(),
+                        ignored->StreamingConnection.closeConnection()
+        );
 
         //don't change below this line
         StepVerifier.create(stream)
